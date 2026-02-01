@@ -1,5 +1,5 @@
+import { env } from '@/config/env.config';
 import mongoose from 'mongoose';
-import env from '@/config/env';
 /**
  * Database connection configuration and management
  * Implements connection pooling, retry logic, and graceful shutdown

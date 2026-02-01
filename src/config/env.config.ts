@@ -1,61 +1,66 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
 
-// Load environment variables from .env file
+// Load environment variables
 dotenv.config();
 
-// JWT Duration type
-type JwtDuration = `${number}${'s' | 'm' | 'h' | 'd' | 'w' | 'M' | 'y'}`;
+// JWT duration type
+type JWTDuration = `${number}${'s' | 'm' | 'h' | 'd'}`;
 
-const jwtDurationSchema = z.custom<JwtDuration>(
-  (val) => typeof val === 'string' && /^[0-9]+[smhdwMy]$/.test(val),
-  { message: 'Invalid JWT duration format' }
+const jwtDurationSchema = z.custom<JWTDuration>(
+  (val) => typeof val === 'string' && /^\d+[smhd]$/.test(val),
+  { message: 'Invalid JWT duration format (use 15m, 1h, 7d)' }
 );
 
+/**
+ * Environment variables schema with validation
+ * Ensures all required configuration is present at startup
+ */
 const envSchema = z.object({
+  // Server
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  PORT: z.coerce.number().default(4000),
+  PORT: z.string().transform(Number).default(5000),
   API_VERSION: z.string().default('v1'),
 
   // Database
-  MONGO_URI: z.string().min(1, 'MONGO_URI is required'),
-  MONGO_OPTIONS: z.string().optional(),
+  MONGODB_URI: z.string().url(),
+  MONGODB_OPTIONS: z.string().optional(),
 
   // JWT
-  JWT_ACCESS_TOKEN_SECRET: z.string().min(32, 'JWT_ACCESS_TOKEN_SECRET is required'),
-  JWR_REFRESH_TOKEN_SECRET: z.string().min(32, 'JWR_REFRESH_TOKEN_SECRET is required'),
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT access secret must be at least 32 characters'),
 
-  // JWT EXPIRY
-  JWT_ACCESS_TOKEN_EXPIRES_IN: jwtDurationSchema.default('15m'),
-  JWT_REFRESH_TOKEN_EXPIRES_IN: jwtDurationSchema.default('7d'),
+  JWT_REFRESH_SECRET: z.string().min(32, 'JWT refresh secret must be at least 32 characters'),
+
+  // JWT Expiry
+  JWT_ACCESS_EXPIRY: jwtDurationSchema,
+  JWT_REFRESH_EXPIRY: jwtDurationSchema,
 
   // OTP
-  OTP_EXPIRES_IN_MINUTES: z.coerce.number().default(10),
-  OTP_MAX_ATTEMPTS: z.coerce.number().default(3),
-  OTP_LENGTH: z.coerce.number().default(6),
+  OTP_EXPIRY_MINUTES: z.string().transform(Number).default(10),
+  OTP_MAX_ATTEMPTS: z.string().transform(Number).default(3),
+  OTP_LENGTH: z.string().transform(Number).default(6),
 
-  // COMMUNICATION
-  EMAIL_PROVIDER: z.enum(['mock', 'smtp']).default('mock'),
+  // Communication
+  EMAIL_PROVIDER: z.string().default('mock'),
+  EMAIL_FROM: z.string().email(),
   EMAIL_API_KEY: z.string().optional(),
-  EMAIL_SENDER_ADDRESS: z.string().email().optional(),
 
   // Security
-  BCRYPT_ROUNDS: z.coerce.number().default(12),
-  ALLOWED_ORIGINS: z
-    .string()
-    .transform((val) => val.split(','))
-    .default(['http://localhost:3000', 'http://localhost:3001']),
-  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(15 * 60 * 1000), // 15 minutes
-  RATE_LIMIT_MAX_REQUESTS: z.coerce.number().default(100), // limit each IP to 100 requests per windowMs
+  BCRYPT_ROUNDS: z.string().transform(Number).default(12),
+  ALLOWED_ORIGINS: z.string().transform((val) => val.split(',')),
+  RATE_LIMIT_WINDOW_MS: z.string().transform(Number).default(900000),
+  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).default(100),
 
-  // Audit Logging
-  AUDIT_LOG_RETENTION_DAYS: z.coerce.number().default(365),
+  // Audit
+  AUDIT_LOG_RETENTION_DAYS: z.string().transform(Number).default(365),
 });
 
 type EnvConfig = z.infer<typeof envSchema>;
 
-// validate environment variables
-
+/**
+ * Validates and exports environment configuration
+ * Throws error if validation fails, ensuring safe startup
+ */
 const validateEnv = (): EnvConfig => {
   try {
     return envSchema.parse(process.env);
