@@ -1,0 +1,24 @@
+{
+  "name": "hotel-server",
+  "version": "1.0.0",
+  "description": "Server to manage hotel",
+  "keywords": [
+    "hotel",
+    "server"
+  ],
+  "homepage": "https://github.com/zxdhiru/hotel-server#readme",
+  "bugs": {
+    "url": "https://github.com/zxdhiru/hotel-server/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zxdhiru/hotel-server.git"
+  },
+  "license": "ISC",
+  "author": "Dhirendra Rana (dhiru@alljobguider.in)",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
